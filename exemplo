@@ -1,0 +1,59 @@
+public abstract class Dao<T extends Object, PK extends Integer> {
+
+    // teste
+    //protected final String url = "https://api.java.servidor.gerenciadorcompeticoes.com.br/service/";
+    protected final String url = ENV.URL;
+    //protected final String URL_NODE = "https://api.gerenciadorcompeticoes.com.br/api/";
+    protected final String URL_NODE = ENV.URL_NODE;
+
+    public ClientResponse methodPostUrlPropria(String urlPropria, String json) {
+        //    System.out.println("urlPropria " + urlPropria);
+        Client client = Client.create();
+        WebResource webResource = client.resource(this.URL_NODE + urlPropria);
+        return webResource.type(MediaType.APPLICATION_JSON).post(ClientResponse.class, json);
+    }
+
+
+package com.devpampa.gcomp.config;
+
+public class ENV {
+
+    private static final String ENVIRONMENT = System.getenv("ENVIRONMENT") != null
+            ? System.getenv("ENVIRONMENT").toUpperCase()
+            : "LOCAL";
+
+    public static final String URL;
+    public static final String URL_NODE;
+
+    static {
+        switch (ENVIRONMENT) {
+            case "PROD":
+                URL = getEnvOrDefault("URL_PROD", "https://api.java.servidor.gerenciadorcompeticoes.com.br/service/");
+                URL_NODE = getEnvOrDefault("URL_NODE_PROD", "https://api.gerenciadorcompeticoes.com.br/api/");
+                break;
+
+            case "DOCKER":
+                URL = getEnvOrDefault("URL", "http://NodeService:4000");
+                URL_NODE = getEnvOrDefault("URL_NODE", "http://NodeDocker:3000");
+                break;
+
+            default: // LOCAL
+                URL = getEnvOrDefault("URL_LOCAL", "http://localhost:8080/wsgcomp/service/");
+                URL_NODE = getEnvOrDefault("URL_NODE_LOCAL", "http://localhost:3000/api/");
+                break;
+        }
+    }
+
+    private static String getEnvOrDefault(String key, String defaultValue) {
+        String value = System.getenv(key);
+        return (value != null && !value.trim().isEmpty()) ? value : defaultValue;
+    }
+
+    public static void printEnvConfig() {
+        System.out.println("==================================================");
+        System.out.println("🚀 Ambiente atual: " + ENVIRONMENT);
+        System.out.println("🌐 URL: " + URL);
+        System.out.println("🔗 URL_NODE: " + URL_NODE);
+        System.out.println("==================================================");
+    }
+}

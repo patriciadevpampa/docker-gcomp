@@ -1,0 +1,27 @@
+FROM --platform=linux/amd64 node:18
+
+WORKDIR /app
+
+ARG GIT_REPO
+ARG GIT_TOKEN
+ARG BRANCH=main
+
+RUN git clone -b ${BRANCH} https://${GIT_TOKEN}@${GIT_REPO} .
+
+RUN npm install
+
+# Cria script de inicialização
+RUN printf '#!/bin/sh\n\
+cat > /app/src/config/database.json <<JSON\n\
+{\n\
+    "host": "${DB_HOST:-localhost}",\n\
+    "user": "${DB_USER:-root}",\n\
+    "pass": "${DB_PASSWORD:-}",\n\
+    "nome_banco": "${DB_NAME:-gestorgcomp}"\n\
+}\n\
+JSON\n\
+exec node app.js --host 0.0.0.0\n' > /entrypoint.sh && \
+    chmod +x /entrypoint.sh
+
+EXPOSE 3000
+ENTRYPOINT ["/entrypoint.sh"]

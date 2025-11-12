@@ -1,0 +1,53 @@
+# --- Build Stage ---
+FROM --platform=linux/amd64 maven:3.6.3-jdk-8 AS builder
+
+WORKDIR /app
+
+# Argumentos para o git
+ARG GIT_REPO
+ARG GIT_TOKEN
+ARG BRANCH=main
+
+# Clona o repositório do branch desejado
+RUN git clone -b ${BRANCH} https://${GIT_TOKEN}@${GIT_REPO} .
+
+WORKDIR /app/GestorGcomp
+
+# Build do projeto Java (WAR)
+RUN mvn clean package -DskipTests
+
+# --- Runtime Stage ---
+FROM --platform=linux/amd64 jboss/wildfly:10.1.0.Final
+
+USER root
+
+# Limpa caches antigos para evitar problemas de JSF
+RUN rm -rf /opt/jboss/wildfly/standalone/tmp/* \
+           /opt/jboss/wildfly/standalone/data/*
+
+# Remove WAR antigo e copia o novo WAR do build stage
+RUN rm -f /opt/jboss/wildfly/standalone/deployments/ROOT.war
+COPY --from=builder /app/GestorGcomp/target/*.war /opt/jboss/wildfly/standalone/deployments/ROOT.war
+
+# Adiciona host customizado para WildFly
+RUN sed -i '/<server name="default-server">/a \
+    <host name="gestorgcomp" alias="localhost"/> \
+' /opt/jboss/wildfly/standalone/configuration/standalone.xml
+
+# Copia script de inicialização (opcional)
+COPY docker-entrypoint.sh /opt/jboss/wildfly/
+RUN chmod +x /opt/jboss/wildfly/docker-entrypoint.sh
+
+# Expõe porta padrão WildFly
+EXPOSE 8080
+
+# --- Variáveis de ambiente para o Env.java ---
+# Essas variáveis podem ser sobrescritas pelo docker-compose
+ENV ENVIRONMENT=DOCKER
+ENV URL_LOCAL=http://localhost:8080/wsgcomp/service/
+ENV URL_NODE_LOCAL=http://localhost:3000/api/
+ENV URL_PROD=https://api.java.servidor.gerenciadorcompeticoes.com.br/service/
+ENV URL_NODE_PROD=https://api.gerenciadorcompeticoes.com.br/api/
+
+USER jboss
+CMD ["/opt/jboss/wildfly/bin/standalone.sh", "-b", "0.0.0.0", "-c", "standalone.xml"]

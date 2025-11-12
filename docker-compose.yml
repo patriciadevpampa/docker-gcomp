@@ -1,0 +1,153 @@
+version: '3.8'
+
+networks:
+  gcomp-network:
+    driver: bridge
+
+services:
+  gcomp-db:
+    image: mariadb:10.6
+    container_name: gcomp-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: gestorgcomp
+      MYSQL_USER: gcomp
+      MYSQL_PASSWORD: gcomp123
+    volumes:
+      - ./dump:/docker-entrypoint-initdb.d
+    ports:
+      - "3307:3306"
+    networks:
+      - gcomp-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u gcomp -pgcomp123"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+      start_period: 10s
+
+  gcomp-backend-java:
+    build:
+      context: .
+      dockerfile: Dockerfile.java-backend
+      args:
+        GIT_REPO: github.com/petersonmrodrigues/gcomp-backend-java.git
+        GIT_TOKEN: ${GIT_TOKEN}
+        BRANCH: ${BRANCH_JAVA_BACKEND}
+    container_name: gcomp-backend-java
+    ports:
+      - "8080:8080"
+    networks:
+      - gcomp-network
+    depends_on:
+      gcomp-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:8080/ > /dev/null || exit 1"]
+      interval: 10s
+      retries: 10
+      start_period: 20s
+      timeout: 5s
+    environment:
+      JAVA_SERVICE_HOST: gcomp-backend-java
+      JAVA_SERVICE_PORT: 8080
+      DB_HOST: gcomp-db
+      DB_PORT: 3306
+      DB_NAME: gestorgcomp
+      DB_USER: gcomp
+      DB_PASSWORD: gcomp123
+
+  gcomp-backend-node:
+    build:
+      context: .
+      dockerfile: Dockerfile.node
+      args:
+        GIT_REPO: github.com/pedrodevpampa/gcomp-backend-node.git
+        GIT_TOKEN: ${GIT_TOKEN}
+        BRANCH: ${BRANCH_NODE}
+    container_name: gcomp-backend-node
+    ports:
+      - "3000:3003"
+    networks:
+      - gcomp-network
+    depends_on:
+      gcomp-backend-java:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:3003/ > /dev/null || exit 1"]
+      interval: 10s
+      retries: 10
+      start_period: 20s
+      timeout: 5s
+    environment:
+      HOST: 0.0.0.0
+      USUARIO_SERVICE_HOST: gcomp-backend-node
+      USUARIO_SERVICE_PORT: 3003
+      DB_HOST: gcomp-db
+      DB_PORT: 3306
+      DB_NAME: gestorgcomp
+      DB_USER: gcomp
+      DB_PASSWORD: gcomp123
+
+  gcomp-sistema:
+    build:
+      context: .
+      dockerfile: Dockerfile.java-sistema
+      args:
+        GIT_REPO: github.com/petersonmrodrigues/gcomp-sistema.git
+        GIT_TOKEN: ${GIT_TOKEN}
+        BRANCH: ${BRANCH_JAVA_SISTEMA}
+    container_name: gcomp-sistema
+    ports:
+      - "8081:8080"
+    networks:
+      - gcomp-network
+    depends_on:
+      gcomp-backend-java:
+        condition: service_healthy
+      gcomp-backend-node:
+        condition: service_healthy
+    environment:
+      DB_HOST: gcomp-db
+      DB_PORT: 3306
+      DB_NAME: gestorgcomp
+      DB_USER: gcomp
+      DB_PASSWORD: gcomp123
+
+      JAVA_SERVICE_HOST: gcomp-backend-java
+      JAVA_SERVICE_PORT: 8080
+      USUARIO_SERVICE_HOST: gcomp-backend-node
+      USUARIO_SERVICE_PORT: 3003
+
+      ENVIRONMENT: ${ENVIRONMENT}
+      URL: ${URL}
+      URL_NODE: ${URL_NODE}
+      URL_LOCAL: ${URL_LOCAL}
+      URL_NODE_LOCAL: ${URL_NODE_LOCAL}
+      URL_PROD: ${URL_PROD}
+      URL_NODE_PROD: ${URL_NODE_PROD}
+
+  # Serviço de migrações automáticas do banco
+  # Só executa quando chamado explicitamente
+  gcomp-migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrations
+    container_name: gcomp-migrations
+    profiles:
+      - migrations  # NÃO roda no 'docker compose up' normal
+    networks:
+      - gcomp-network
+    depends_on:
+      gcomp-db:
+        condition: service_healthy
+    volumes:
+      - ./database_migrations:/migrations
+    environment:
+      DB_HOST: gcomp-db
+      DB_PORT: 3306
+      DB_NAME: gestorgcomp
+      DB_USER: gcomp
+      DB_PASSWORD: gcomp123
+    # Executa uma vez e para (não precisa ficar rodando)
+    restart: "no"

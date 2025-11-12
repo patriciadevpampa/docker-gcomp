@@ -1,0 +1,56 @@
+FROM --platform=linux/amd64 maven:3.6.3-jdk-8 AS builder
+
+WORKDIR /app
+
+ARG GIT_REPO
+ARG GIT_TOKEN
+ARG BRANCH=main
+
+# Clone do repositório privado
+RUN git clone -b ${BRANCH} https://${GIT_TOKEN}@${GIT_REPO} .
+
+# Build do WAR
+RUN mvn clean package -DskipTests
+
+# --- Runtime WildFly ---
+FROM --platform=linux/amd64 jboss/wildfly:10.1.0.Final
+
+USER root
+
+# Copia o WAR
+COPY --from=builder /app/target/*.war /opt/jboss/wildfly/standalone/deployments/ROOT.war
+
+# Cria script de configuração do datasource
+RUN echo '#!/bin/bash' > /entrypoint.sh && \
+    echo 'export DB_HOST=${DB_HOST:-gcomp-db}' >> /entrypoint.sh && \
+    echo 'export DB_PORT=${DB_PORT:-3306}' >> /entrypoint.sh && \
+    echo 'export DB_NAME=${DB_NAME:-gestorgcomp}' >> /entrypoint.sh && \
+    echo 'export DB_USER=${DB_USER:-gcomp}' >> /entrypoint.sh && \
+    echo 'export DB_PASSWORD=${DB_PASSWORD:-gcomp123}' >> /entrypoint.sh && \
+    echo '/opt/jboss/wildfly/bin/standalone.sh --admin-only -b 0.0.0.0 &' >> /entrypoint.sh && \
+    echo 'until /opt/jboss/wildfly/bin/jboss-cli.sh --connect --command=":read-attribute(name=server-state)" 2>/dev/null | grep -q "running"; do sleep 1; done' >> /entrypoint.sh && \
+    echo '/opt/jboss/wildfly/bin/jboss-cli.sh --connect --command="/subsystem=datasources/jdbc-driver=mysql:add(driver-name=mysql,driver-module-name=com.mysql,driver-class-name=com.mysql.jdbc.Driver)"' >> /entrypoint.sh && \
+    echo '/opt/jboss/wildfly/bin/jboss-cli.sh --connect --command="data-source add --name=gCompDS --jndi-name=java:/gCompDS --driver-name=mysql --connection-url=jdbc:mysql://$DB_HOST:$DB_PORT/$DB_NAME --user-name=$DB_USER --password=$DB_PASSWORD --use-ccm=false --max-pool-size=25 --blocking-timeout-wait-millis=5000 --enabled=true"' >> /entrypoint.sh && \
+    echo '/opt/jboss/wildfly/bin/jboss-cli.sh --connect --command=":reload"' >> /entrypoint.sh && \
+    echo 'wait' >> /entrypoint.sh && \
+    chmod +x /entrypoint.sh
+
+# Adiciona módulo MySQL ao WildFly
+RUN mkdir -p /opt/jboss/wildfly/modules/system/layers/base/com/mysql/main && \
+    curl -o /opt/jboss/wildfly/modules/system/layers/base/com/mysql/main/mysql-connector-java-5.1.46.jar \
+    https://repo1.maven.org/maven2/mysql/mysql-connector-java/5.1.46/mysql-connector-java-5.1.46.jar
+RUN echo '<?xml version="1.0" encoding="UTF-8"?>' > /opt/jboss/wildfly/modules/system/layers/base/com/mysql/main/module.xml && \
+    echo '<module xmlns="urn:jboss:module:1.3" name="com.mysql">' >> /opt/jboss/wildfly/modules/system/layers/base/com/mysql/main/module.xml && \
+    echo '  <resources>' >> /opt/jboss/wildfly/modules/system/layers/base/com/mysql/main/module.xml && \
+    echo '    <resource-root path="mysql-connector-java-5.1.46.jar"/>' >> /opt/jboss/wildfly/modules/system/layers/base/com/mysql/main/module.xml && \
+    echo '  </resources>' >> /opt/jboss/wildfly/modules/system/layers/base/com/mysql/main/module.xml && \
+    echo '  <dependencies>' >> /opt/jboss/wildfly/modules/system/layers/base/com/mysql/main/module.xml && \
+    echo '    <module name="javax.api"/>' >> /opt/jboss/wildfly/modules/system/layers/base/com/mysql/main/module.xml && \
+    echo '    <module name="javax.transaction.api"/>' >> /opt/jboss/wildfly/modules/system/layers/base/com/mysql/main/module.xml && \
+    echo '  </dependencies>' >> /opt/jboss/wildfly/modules/system/layers/base/com/mysql/main/module.xml && \
+    echo '</module>' >> /opt/jboss/wildfly/modules/system/layers/base/com/mysql/main/module.xml
+
+USER jboss
+
+EXPOSE 8080
+ENTRYPOINT ["/entrypoint.sh"]

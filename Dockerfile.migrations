@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+# Instala dependências para processar arquivos .mwb
+RUN apt-get update && apt-get install -y \
+    default-mysql-client \
+    python3-lxml \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instala biblioteca Python para ler arquivos .mwb
+RUN pip install --no-cache-dir mysql-connector-python
+
+WORKDIR /migrations
+
+# Copia script de migração
+COPY database_migrations/auto_migrate.py /migrations/
+COPY database_migrations/mwb_parser.py /migrations/
+
+# Script será executado via docker compose ou manualmente
+CMD ["python", "auto_migrate.py"]

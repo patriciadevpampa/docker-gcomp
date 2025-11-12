@@ -1,0 +1,16 @@
+# Secrets e configurações locais
+.env
+
+# Arquivos temporários do Docker
+.docker/
+
+# Logs
+*.log
+
+# Arquivos de migração
+database_migrations/.migration_version
+database_migrations/history/
+
+# Dumps grandes (usar Git LFS se necessário)
+dump/*.data
+dump/dump_temp.sql.data
