@@ -9,6 +9,10 @@ ARG BRANCH=main
 # Clone do repositório privado
 RUN git clone -b ${BRANCH} https://${GIT_TOKEN}@${GIT_REPO} .
 
+# Fix: Remove manager.flush() from read-only queries in Dao.java
+# This causes TransactionRequiredException in JPA/EJB context
+RUN find . -name "Dao.java" -type f -exec sed -i '/manager\.flush();/d' {} \;
+
 # Build do WAR
 RUN mvn clean package -DskipTests
 
