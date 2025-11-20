@@ -23,7 +23,7 @@ DB_CONFIG = {
     'port': int(os.getenv('DB_PORT', '3306')),
     'user': os.getenv('DB_USER', 'gcomp'),
     'password': os.getenv('DB_PASSWORD', 'gcomp123'),
-    'database': os.getenv('DB_NAME', 'gestorgcomp')
+    'database': os.getenv('DB_NAME', 'servidorgerencia_gcomp')
 }
 
 def wait_for_database(max_retries=30):

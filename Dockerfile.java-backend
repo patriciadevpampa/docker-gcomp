@@ -9,6 +9,10 @@ ARG BRANCH=main
 # Clone do repositório privado
 RUN git clone -b ${BRANCH} https://${GIT_TOKEN}@${GIT_REPO} .
 
+# Fix: Remove all manager.flush() and getEntityManager().flush() calls from Dao.java
+# These cause TransactionRequiredException in read-only queries
+RUN find . -path "*/dao/Dao.java" -type f -exec sed -i -e '/manager\.flush();/d' -e '/getEntityManager()\.flush();/d' {} +
+
 # Build do WAR
 RUN mvn clean package -DskipTests
 
@@ -24,7 +28,7 @@ COPY --from=builder /app/target/*.war /opt/jboss/wildfly/standalone/deployments/
 RUN echo '#!/bin/bash' > /entrypoint.sh && \
     echo 'export DB_HOST=${DB_HOST:-gcomp-db}' >> /entrypoint.sh && \
     echo 'export DB_PORT=${DB_PORT:-3306}' >> /entrypoint.sh && \
-    echo 'export DB_NAME=${DB_NAME:-gestorgcomp}' >> /entrypoint.sh && \
+    echo 'export DB_NAME=${DB_NAME:-servidorgerencia_gcomp}' >> /entrypoint.sh && \
     echo 'export DB_USER=${DB_USER:-gcomp}' >> /entrypoint.sh && \
     echo 'export DB_PASSWORD=${DB_PASSWORD:-gcomp123}' >> /entrypoint.sh && \
     echo '/opt/jboss/wildfly/bin/standalone.sh --admin-only -b 0.0.0.0 &' >> /entrypoint.sh && \

@@ -19,7 +19,7 @@ def parse_mwb_file(mwb_path):
     
     result = {
         'tables': [],
-        'schema_name': 'gestorgcomp',
+        'schema_name': 'servidorgerencia_gcomp',
         'sql': []
     }
     
@@ -39,27 +39,29 @@ def parse_mwb_file(mwb_path):
                     if schema_name is not None:
                         result['schema_name'] = schema_name.text
                     
-                    # Busca as tabelas
-                    for table in schema.findall('.//value[@struct-name="db.mysql.Table"]', ns):
-                        table_name_elem = table.find('.//value[@key="name"]', ns)
-                        if table_name_elem is not None:
-                            table_info = {
-                                'name': table_name_elem.text,
-                                'columns': []
-                            }
-                            
-                            # Busca as colunas
-                            for column in table.findall('.//value[@struct-name="db.mysql.Column"]', ns):
-                                col_name = column.find('.//value[@key="name"]', ns)
-                                col_type = column.find('.//value[@key="simpleType"]', ns)
+                    # Busca as tabelas (apenas no nível correto, não recursivo)
+                    tables_elem = schema.find('.//value[@key="tables"]', ns)
+                    if tables_elem is not None:
+                        for table in tables_elem.findall('./value[@struct-name="db.mysql.Table"]', ns):
+                            table_name_elem = table.find('.//value[@key="name"]', ns)
+                            if table_name_elem is not None:
+                                table_info = {
+                                    'name': table_name_elem.text,
+                                    'columns': []
+                                }
                                 
-                                if col_name is not None:
-                                    table_info['columns'].append({
-                                        'name': col_name.text,
-                                        'type': col_type.text if col_type is not None else 'VARCHAR(255)'
-                                    })
-                            
-                            result['tables'].append(table_info)
+                                # Busca as colunas
+                                for column in table.findall('.//value[@struct-name="db.mysql.Column"]', ns):
+                                    col_name = column.find('.//value[@key="name"]', ns)
+                                    col_type = column.find('.//value[@key="simpleType"]', ns)
+                                    
+                                    if col_name is not None:
+                                        table_info['columns'].append({
+                                            'name': col_name.text,
+                                            'type': col_type.text if col_type is not None else 'VARCHAR(255)'
+                                        })
+                                
+                                result['tables'].append(table_info)
                 
                 print(f"✅ Arquivo .mwb parseado com sucesso!")
                 print(f"   Schema: {result['schema_name']}")

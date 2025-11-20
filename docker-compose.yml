@@ -11,7 +11,7 @@ services:
     container_name: gcomp-db
     environment:
       MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: gestorgcomp
+      MYSQL_DATABASE: servidorgerencia_gcomp
       MYSQL_USER: gcomp
       MYSQL_PASSWORD: gcomp123
     volumes:
@@ -54,7 +54,7 @@ services:
       JAVA_SERVICE_PORT: 8080
       DB_HOST: gcomp-db
       DB_PORT: 3306
-      DB_NAME: gestorgcomp
+      DB_NAME: servidorgerencia_gcomp
       DB_USER: gcomp
       DB_PASSWORD: gcomp123
 
@@ -86,7 +86,7 @@ services:
       USUARIO_SERVICE_PORT: 3003
       DB_HOST: gcomp-db
       DB_PORT: 3306
-      DB_NAME: gestorgcomp
+      DB_NAME: servidorgerencia_gcomp
       DB_USER: gcomp
       DB_PASSWORD: gcomp123
 
@@ -111,7 +111,7 @@ services:
     environment:
       DB_HOST: gcomp-db
       DB_PORT: 3306
-      DB_NAME: gestorgcomp
+      DB_NAME: servidorgerencia_gcomp
       DB_USER: gcomp
       DB_PASSWORD: gcomp123
 
@@ -147,7 +147,7 @@ services:
     environment:
       DB_HOST: gcomp-db
       DB_PORT: 3306
-      DB_NAME: gestorgcomp
+      DB_NAME: servidorgerencia_gcomp
       DB_USER: gcomp
       DB_PASSWORD: gcomp123
     # Executa uma vez e para (não precisa ficar rodando)

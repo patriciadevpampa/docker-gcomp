@@ -17,7 +17,7 @@ cat > /app/src/config/database.json <<JSON\n\
     "host": "${DB_HOST:-localhost}",\n\
     "user": "${DB_USER:-root}",\n\
     "pass": "${DB_PASSWORD:-}",\n\
-    "nome_banco": "${DB_NAME:-gestorgcomp}"\n\
+    "nome_banco": "${DB_NAME:-servidorgerencia_gcomp}"\n\
 }\n\
 JSON\n\
 exec node app.js --host 0.0.0.0\n' > /entrypoint.sh && \

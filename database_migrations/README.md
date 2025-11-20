@@ -96,7 +96,7 @@ echo "ALTER TABLE foo DROP COLUMN bar;" > database_migrations/manual/fix.sql
 
 # 2. Aplique manualmente
 docker cp database_migrations/manual/fix.sql gcomp-db:/tmp/
-docker exec -i gcomp-db mysql -u gcomp -pgcomp123 gestorgcomp < /tmp/fix.sql
+docker exec -i gcomp-db mysql -u gcomp -pgcomp123 servidorgerencia_gcomp < /tmp/fix.sql
 ```
 
 ---

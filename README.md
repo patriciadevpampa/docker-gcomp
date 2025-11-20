@@ -177,7 +177,7 @@ Após os containers estarem rodando (status `healthy`):
 - Porta: `3307`
 - Usuário: `gcomp`
 - Senha: `gcomp123`
-- Database: `gestorgcomp`
+- Database: `servidorgerencia_gcomp`
 
 ---
 
@@ -214,7 +214,7 @@ docker exec gcomp-backend-node cat /app/src/config/database.json
 #   "host": "gcomp-db",
 #   "user": "gcomp",
 #   "pass": "gcomp123",
-#   "nome_banco": "gestorgcomp"
+#   "nome_banco": "servidorgerencia_gcomp"
 # }
 ```
 

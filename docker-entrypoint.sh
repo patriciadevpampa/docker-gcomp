@@ -13,8 +13,8 @@ done
 
 # Cria banco e importa dump
 echo "Criando banco e importando dump..."
-mysql -e "CREATE DATABASE IF NOT EXISTS \`gestorgcomp\`;"
-mysql gestorgcomp < /docker-entrypoint-initdb.d/dump.sql
+mysql -e "CREATE DATABASE IF NOT EXISTS \`servidorgerencia_gcomp\`;"
+mysql servidorgerencia_gcomp < /docker-entrypoint-initdb.d/dump.sql
 
 # Inicia WildFly
 echo "Iniciando WildFly..."
